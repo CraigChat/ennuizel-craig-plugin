@@ -22,12 +22,20 @@ declare let LibAV: any;
 const ui = Ennuizel.ui;
 const hotkeys = Ennuizel.hotkeys;
 
+const craig = "https://craig.horse/";
+
+// Our formats, as indexed in wizard options
+const wizardFormats = [
+    "_FLAC", "_M4A (MPEG-4 audio)", "Ogg _Vorbis", "_Opus", "wav_pack", "_wav",
+    "A_LAC"
+];
+
 // The plugin info
 const plugin: ennuizel.Plugin = {
-    name: "Ennuicastr",
-    id: "ennuicastr",
-    infoURL: "https://github.com/Yahweasel/ennuizel-ennuicastr-plugin",
-    description: "This plugin connects Ennuizel (the audio editing tool) to Ennuicastr (the online recording tool).",
+    name: "Craig",
+    id: "craig",
+    infoURL: "https://github.com/Yahweasel/ennuizel-craig-plugin",
+    description: "This plugin connects Ennuizel (the audio editing tool) to Craig (the online recording tool).",
     licenseInfo
 };
 
@@ -42,7 +50,7 @@ const plugin: ennuizel.Plugin = {
 Ennuizel.registerPlugin(plugin);
 
 /**
- * The Ennuicastr wizard.
+ * The wizard.
  */
 async function wizard(d: ennuizel.ui.Dialog) {
     // Get project info
@@ -53,7 +61,9 @@ async function wizard(d: ennuizel.ui.Dialog) {
     const keyS = params.get("k");
     const key = Number.parseInt(keyS, 36);
     let projName = params.get("nm");
-    if (!projName) projName = idS;
+    if (!projName) projName = id + "";
+    const wizardOptsS = params.get("w");
+    const wizardOpts = wizardOptsS ? Number.parseInt(wizardOptsS, 36) : null;
 
     // Hide it from the URL
     url.search = "";
@@ -65,7 +75,7 @@ async function wizard(d: ennuizel.ui.Dialog) {
         const projects = await Ennuizel.getProjects();
         const ecProjects: string[] = [];
         for (const project of projects) {
-            if (/^ec-/.test(project.name))
+            if (/^craig-/.test(project.name))
                 ecProjects.push(project.id);
         }
 
@@ -97,29 +107,35 @@ async function wizard(d: ennuizel.ui.Dialog) {
     // Now ask them whether to wizard
     let doWizard: boolean = false;
     let doCancel: boolean = false;
-    await ui.dialog(async function(d, show) {
-        ui.mk("div", d.box, {
-            innerHTML: "This tool is capable of automatically performing some mastering tasks on your audio and exporting it. Alternatively, you may use this tool manually to edit your audio.<br/><br/>"
+    if (!wizardOptsS) {
+        await ui.dialog(async function(d, show) {
+            ui.mk("div", d.box, {
+                innerHTML: "This tool is capable of automatically performing some mastering tasks on your audio and exporting it. Alternatively, you may use this tool manually to edit your audio.<br/><br/>"
+            });
+
+            const auto = hotkeys.btn(d, "_Automatic Mastering", {className: "row"});
+            const manual = hotkeys.btn(d, "Manual _Editing", {className: "row"});
+            const canc = hotkeys.btn(d, "_Cancel", {className: "row"});
+
+            show(auto);
+
+            await new Promise(res => {
+                auto.onclick = () => {
+                    doWizard = true;
+                    res(null);
+                };
+                manual.onclick = () => res(null);
+                canc.onclick = () => {
+                    doCancel = true;
+                    res(null);
+                };
+            });
         });
 
-        const auto = hotkeys.btn(d, "_Automatic Mastering", {className: "row"});
-        const manual = hotkeys.btn(d, "Manual _Editing", {className: "row"});
-        const canc = hotkeys.btn(d, "_Cancel", {className: "row"});
+    } else {
+        doWizard = true;
 
-        show(auto);
-
-        await new Promise(res => {
-            auto.onclick = () => {
-                doWizard = true;
-                res(null);
-            };
-            manual.onclick = () => res(null);
-            canc.onclick = () => {
-                doCancel = true;
-                res(null);
-            };
-        });
-    });
+    }
 
     if (doCancel)
         return;
@@ -133,58 +149,69 @@ async function wizard(d: ennuizel.ui.Dialog) {
         keep: false
     };
     if (doWizard) {
-        await ui.dialog(async function(d, show) {
-            // Format selection
-            hotkeys.mk(d, "_Format:&nbsp;",
-                lbl => ui.lbl(d.box, "ec-format", lbl, {className: "ez"}));
-            const fsel = ui.mk("select", d.box, {
-                id: "ec-format"
-            });
-            for (const format of Ennuizel.standardExports) {
-                ui.mk("option", fsel, {
-                    value: format.name,
-                    innerText: format.name.replace("_", "")
+        if (!wizardOptsS || (wizardOpts & 0x200)) {
+            await ui.dialog(async function(d, show) {
+                // Format selection
+                hotkeys.mk(d, "_Format:&nbsp;",
+                    lbl => ui.lbl(d.box, "craig-format", lbl, {className: "ez"}));
+                const fsel = ui.mk("select", d.box, {
+                    id: "craig-format"
                 });
-            }
-            ui.mk("br", d.box);
-            ui.mk("br", d.box);
-
-            // Options
-            function mkOption(id: string, lbl: string) {
-                const ret = ui.mk("input", d.box, {
-                    id: "ec-" + id,
-                    type: "checkbox"
-                });
-                hotkeys.mk(d, "&nbsp;" + lbl,
-                    lbl => ui.lbl(d.box, "ec-" + id, lbl));
+                for (const format of Ennuizel.standardExports) {
+                    ui.mk("option", fsel, {
+                        value: format.name,
+                        innerText: format.name.replace("_", "")
+                    });
+                }
                 ui.mk("br", d.box);
-                return ret;
-            }
+                ui.mk("br", d.box);
 
-            const mix = mkOption("mix", "_Mix into a single track");
-            const level = mkOption("level", "_Level volume");
-            level.checked = true;
-            const noiser = mkOption("noiser", "_Noise reduction");
-            const keep = mkOption("keep", "_Keep data cached in browser");
-            ui.mk("br", d.box);
+                // Options
+                function mkOption(id: string, lbl: string) {
+                    const ret = ui.mk("input", d.box, {
+                        id: "craig-" + id,
+                        type: "checkbox"
+                    });
+                    hotkeys.mk(d, "&nbsp;" + lbl,
+                        lbl => ui.lbl(d.box, "craig-" + id, lbl));
+                    ui.mk("br", d.box);
+                    return ret;
+                }
 
-            const go = hotkeys.btn(d, "_Go", {className: "row"});
-            const canc = hotkeys.btn(d, "_Cancel", {className: "row"});
-            show(go);
+                const mix = mkOption("mix", "_Mix into a single track");
+                const level = mkOption("level", "_Level volume");
+                level.checked = true;
+                const noiser = mkOption("noiser", "_Noise reduction");
+                const keep = mkOption("keep", "_Keep data cached in browser");
+                ui.mk("br", d.box);
 
-            doWizard = await new Promise(res => {
-                go.onclick = () => {
-                    opts.format = fsel.value;
-                    opts.mix = mix.checked;
-                    opts.level = level.checked;
-                    opts.noiser = noiser.checked;
-                    opts.keep = keep.checked;
-                    res(true);
-                };
+                const go = hotkeys.btn(d, "_Go", {className: "row"});
+                const canc = hotkeys.btn(d, "_Cancel", {className: "row"});
+                show(go);
 
-                canc.onclick = () => res(false);
+                doWizard = await new Promise(res => {
+                    go.onclick = () => {
+                        opts.format = fsel.value;
+                        opts.mix = mix.checked;
+                        opts.level = level.checked;
+                        opts.noiser = noiser.checked;
+                        opts.keep = keep.checked;
+                        res(true);
+                    };
+
+                    canc.onclick = () => res(false);
+                });
             });
-        });
+
+        } else {
+            // Get the options from the URL
+            opts.format = wizardFormats[wizardOpts & 0xF] || "_FLAC";
+            opts.mix = !!(wizardOpts & 0x10);
+            opts.level = !!(wizardOpts & 0x20);
+            opts.noiser = !!(wizardOpts & 0x40);
+            opts.keep = !!(wizardOpts & 0x100);
+
+        }
     }
 
     // Import the actual data
@@ -265,6 +292,12 @@ async function wizard(d: ennuizel.ui.Dialog) {
 
     d.box.innerHTML = "Loading...";
 
+    // Fetch the info.txt
+    const ifr = document.createElement("iframe");
+    ifr.style.display = "none";
+    ifr.src = craig + "?id=" + id + "&key=" + key + "&fetch=infotxt";
+    document.body.appendChild(ifr);
+
     // Delete it
     if (!opts.keep)
         await project.del();
@@ -279,36 +312,21 @@ async function loadData(
     d: ennuizel.ui.Dialog, url: URL, id: number, key: number, projName: string
 ) {
     // Make the project
-    const project = await Ennuizel.newProject("ec-" + projName + "-" +
+    const project = await Ennuizel.newProject("craig-" + projName + "-" +
         id.toString(36));
 
     // Get the info
-    const response = await fetch("/rec.jss?i=" + id.toString(36) + "&k=" +
-        key.toString(36) + "&f=info");
+    const response = await fetch(craig + "?id=" + id + "&key=" + key + "&fetch=info");
     const info = await response.json();
-    const transcription = info.info.transcription;
 
     // Create the tracks
     const tracks: {idx: number, track: ennuizel.track.AudioTrack}[] = [];
-    const capTracks: {idx: number, track: ennuizel.captions.CaptionTrack}[] = [];
-    const sfxTracks: {idx: number, track: ennuizel.track.AudioTrack}[] = [];
     for (let idx = 1; info.tracks[idx]; idx++) {
         const track = await project.newAudioTrack(
-            {name: idx + "-" + info.tracks[idx].nick});
+            {name: idx + "-" + info.tracks[idx].name + "_" + info.tracks[idx].discrim});
         tracks.push({idx, track});
-
-        if (transcription) {
-            const ctrack = await project.newCaptionTrack(
-                {name: idx + "-" + info.tracks[idx].nick});
-            capTracks.push({idx, track: ctrack});
-        }
     }
     const trackCt = tracks.length;
-    for (let idx = 1; idx <= info.sfx; idx++) {
-        const track = await project.newAudioTrack(
-            {name: "SFX-" + idx});
-        sfxTracks.push({idx, track});
-    }
 
     // Status info
     const status: {
@@ -316,8 +334,6 @@ async function loadData(
         duration: number|boolean
     }[] = [];
     for (const track of tracks)
-        status.push({name: track.track.name, duration: false});
-    for (const track of sfxTracks)
         status.push({name: track.track.name, duration: false});
 
     // Show the current status
@@ -346,7 +362,7 @@ async function loadData(
         const libav = await LibAV.LibAV();
 
         // Make the connection
-        const sock = new WebSocket("wss://" + url.host + "/ws");
+        const sock = new WebSocket("wss://" + url.host + "/ennuizel/ws");
         sock.binaryType = "arraybuffer";
 
         // Receive data
@@ -520,17 +536,11 @@ async function loadData(
     const promises: Promise<unknown>[] = [];
 
     // Run them all
-    while (tracks.length + sfxTracks.length) {
+    while (tracks.length) {
         // Enqueue normal tracks
         while (tracks.length && promises.length < threads) {
             const track = tracks.shift();
             promises.push(loadTrack(track.track, 0x11, track.idx, track.idx - 1));
-        }
-
-        // Enqueue SFX tracks
-        while (sfxTracks.length && promises.length < threads) {
-            const track = sfxTracks.shift();
-            promises.push(loadTrack(track.track, 0x12, track.idx, trackCt + track.idx - 1));
         }
 
         // Wait for one to finish
@@ -540,26 +550,6 @@ async function loadData(
 
     // Wait for them all to finish
     await Promise.all(promises);
-
-    // Load any caption tracks
-    d.box.innerHTML = "Loading...";
-    for (const {idx, track} of capTracks) {
-        const response = await fetch("/rec.jss?i=" + id.toString(36) + "&k=" +
-            key.toString(36) + "&f=vosk&t=" + idx);
-        let caps: any[] = [];
-        try {
-            caps = await response.json();
-        } catch (ex) {}
-        caps = caps.filter(x => x.length > 0);
-
-        // Add all the captions
-        for (let lo = 0; lo < caps.length; lo += 16) {
-            const lines = caps.slice(lo, lo + 16);
-            d.box.innerHTML = "Loading captions...<br/>" + track.name + ": " +
-                Ennuizel.util.timestamp(lines[0][0].start);
-            await track.appendRaw(lines);
-        }
-    }
     d.box.innerHTML = "Loading...";
 
     return project;

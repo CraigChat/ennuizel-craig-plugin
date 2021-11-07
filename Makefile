@@ -1,8 +1,8 @@
 PREFIX=inst
 
-all: ennuizel-ennuicastr.js
+all: ennuizel-craig.js
 
-ennuizel-ennuicastr.js: ennuizel-ennuicastr.ts node_modules/.bin/tsc
+ennuizel-craig.js: ennuizel-craig.ts node_modules/.bin/tsc
 	./node_modules/.bin/tsc -t es5 --lib es2015,dom $<
 
 node_modules/.bin/tsc:
@@ -10,10 +10,10 @@ node_modules/.bin/tsc:
 
 install:
 	mkdir -p $(PREFIX)
-	install -m 0622 ennuizel-ennuicastr.js $(PREFIX)/ennuizel-ennuicastr.js
+	install -m 0622 ennuizel-craig.js $(PREFIX)/ennuizel-craig.js
 
 clean:
-	rm -f ennuizel-ennuicastr.js
+	rm -f ennuizel-craig.js
 
 distclean: clean
 	rm -rf node_modules
