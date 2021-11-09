@@ -551,6 +551,7 @@ async function loadData(
         await libav.ff_free_decoder(c, pkt, frame);
         if (filter_graph >= 0)
             await libav.avfilter_graph_free_js(filter_graph);
+        await libav.unlink(fname);
     }
 
     // # of threads
