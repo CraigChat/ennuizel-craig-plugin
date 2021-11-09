@@ -39,11 +39,14 @@ const plugin: ennuizel.Plugin = {
     licenseInfo
 };
 
+const url = new URL(window.location.href);
+const params = url.searchParams;
+
 // Check whether to use the wizard
 (function() {
-    const url = new URL(document.location.href);
-    if (url.searchParams.get("i"))
+    if (params.get("i"))
         plugin.wizard = wizard;
+    plugin.postWizard = postWizard;
 })();
 
 // Register the plugin
@@ -52,10 +55,8 @@ Ennuizel.registerPlugin(plugin);
 /**
  * The wizard.
  */
-async function wizard(d: ennuizel.ui.Dialog) {
+async function craigWizard(d: ennuizel.ui.Dialog, project: ennuizel.Project) {
     // Get project info
-    const url = new URL(window.location.href);
-    const params = url.searchParams;
     const idS = params.get("i");
     const id = Number.parseInt(idS, 36);
     const keyS = params.get("k");
@@ -66,12 +67,15 @@ async function wizard(d: ennuizel.ui.Dialog) {
     const wizardOpts = wizardOptsS ? Number.parseInt(wizardOptsS, 36) : null;
 
     // Hide it from the URL
-    url.search = "";
-    window.history.pushState({}, "Ennuizel — " + projName, url.toString());
-    document.title = "Ennuizel — " + projName;
+    if (!project) {
+        const hideURL = new URL(url);
+        hideURL.search = "";
+        window.history.pushState({}, "Ennuizel — " + projName, hideURL.toString());
+        document.title = "Ennuizel — " + projName;
+    }
 
     // Check for existing projects
-    {
+    if (!project) {
         const projects = await Ennuizel.getProjects();
         const ecProjects: string[] = [];
         for (const project of projects) {
@@ -222,8 +226,10 @@ async function wizard(d: ennuizel.ui.Dialog) {
         }
     }
 
-    // Import the actual data
-    const project = await loadData(d, url, id, key, projName);
+    if (!project) {
+        // Import the actual data
+        project = await loadData(d, url, id, key, projName);
+    }
 
     // If they didn't want the wizard, we're now done
     if (!doWizard)
@@ -322,6 +328,22 @@ async function wizard(d: ennuizel.ui.Dialog) {
         await project.del();
 
     await ui.alert("Your audio has now been exported. You may close this tab, or click OK to continue using this tool.");
+}
+
+/**
+ * The "regular" wizard.
+ */
+function wizard(d: ennuizel.ui.Dialog) {
+    return craigWizard(d, null);
+}
+
+/**
+ * The "post" wizard.
+ */
+async function postWizard(project: ennuizel.Project) {
+    await Ennuizel.ui.loading(async function(d) {
+        await craigWizard(d, project);
+    });
 }
 
 /**
