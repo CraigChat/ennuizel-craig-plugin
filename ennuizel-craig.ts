@@ -1,7 +1,8 @@
-/// <reference path="../ennuizel.d.ts" />
+/// <reference path="./ennuizel.d.ts" />
 
 const licenseInfo = `
 Copyright (c) 2019-2021 Yahweasel
+Copyright (c) 2022-present Craig maintainers
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -34,8 +35,8 @@ const wizardFormats = [
 const plugin: ennuizel.Plugin = {
     name: "Craig",
     id: "craig",
-    infoURL: "https://github.com/Yahweasel/ennuizel-craig-plugin",
-    description: "This plugin connects Ennuizel (the audio editing tool) to Craig (the online recording tool).",
+    infoURL: "https://github.com/CraigChat/ennuizel-craig-plugin",
+    description: 'This plugin connects Ennuizel (the audio editing tool) to <a href="https://craig.chat/">Craig</a> (the online recording tool).',
     licenseInfo
 };
 
@@ -367,7 +368,6 @@ async function loadData(
             {name: idx + "-" + info.tracks[idx].name + "_" + info.tracks[idx].discrim});
         tracks.push({idx, track});
     }
-    const trackCt = tracks.length;
 
     // Status info
     const status: {

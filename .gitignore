@@ -1,3 +1,5 @@
 ennuizel-craig.js
 node_modules/
 package-lock.json
+.idea/
+.vscode/

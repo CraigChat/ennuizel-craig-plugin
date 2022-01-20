@@ -1,22 +1,36 @@
 {
-  "name": "ennuizel-ennuicastr-plugin",
+  "name": "ennuizel-craig-plugin",
   "version": "1.0.0",
-  "description": "A plugin to link Ennuizel to Ennuicastr.",
+  "description": "A plugin to link Ennuizel to Craig.",
   "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Yahweasel/ennuizel-ennuicastr-plugin.git"
+    "url": "git+https://github.com/CraigChat/ennuizel-ennuicastr-plugin.git"
   },
-  "author": "Yahweasel",
-  "license": "ISC",
+  "author": {
+    "name": "Snazzah",
+    "email": "me@snazzah.com",
+    "url": "https://snazzah.com/"
+  },
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Yahweasel/ennuizel-ennuicastr-plugin/issues"
+    "url": "https://github.com/CraigChat/ennuizel-ennuicastr-plugin/issues"
   },
-  "homepage": "https://github.com/Yahweasel/ennuizel-ennuicastr-plugin#readme",
+  "homepage": "https://github.com/CraigChat/ennuizel-ennuicastr-plugin#readme",
   "dependencies": {
     "typescript": "^4.4.4"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^21.0.1",
+    "@rollup/plugin-node-resolve": "^13.1.3",
+    "@rollup/plugin-typescript": "^8.3.0",
+    "rollup": "^2.64.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "tslib": "^2.3.1"
   }
 }
