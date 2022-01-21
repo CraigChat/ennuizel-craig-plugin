@@ -403,7 +403,7 @@ async function loadData(
         const libav = await Ennuizel.avthreads.get();
 
         // Make the connection
-        const sock = new WebSocket("wss://" + url.host + "/ennuizel/ws");
+        const sock = new WebSocket("wss://w.craig.horse/ennuizel/ws");
         sock.binaryType = "arraybuffer";
 
         // Receive data
