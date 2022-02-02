@@ -62,8 +62,8 @@ async function craigWizard(d: ennuizel.ui.Dialog, project: ennuizel.Project) {
     const id = Number.parseInt(idS, 36);
     const keyS = params.get("k");
     const key = Number.parseInt(keyS, 36);
-    let projName = params.get("nm");
-    if (!projName) projName = id + "";
+    const projName = params.get("nm") || String(id);
+    const apiUrl = params.get("a") || 'craig.horse';
     const wizardOptsS = params.get("w");
     const wizardOpts = wizardOptsS ? Number.parseInt(wizardOptsS, 36) : null;
 
@@ -229,7 +229,7 @@ async function craigWizard(d: ennuizel.ui.Dialog, project: ennuizel.Project) {
 
     if (!project) {
         // Import the actual data
-        project = await loadData(d, url, id, key, projName);
+        project = await loadData(d, url, id, key, projName, apiUrl);
     }
 
     // If they didn't want the wizard, we're now done
@@ -321,7 +321,7 @@ async function craigWizard(d: ennuizel.ui.Dialog, project: ennuizel.Project) {
     // Fetch the info.txt
     const ifr = document.createElement("iframe");
     ifr.style.display = "none";
-    ifr.src = craig + "?id=" + id + "&key=" + key + "&fetch=infotxt";
+    ifr.src = `https://${apiUrl}/api/recording/${id}/.txt?key=${key}`;
     document.body.appendChild(ifr);
 
     // Delete it
@@ -351,22 +351,23 @@ async function postWizard(project: ennuizel.Project) {
  * Load remote data.
  */
 async function loadData(
-    d: ennuizel.ui.Dialog, url: URL, id: number, key: number, projName: string
+    d: ennuizel.ui.Dialog, url: URL, id: number, key: number, projName: string, apiUrl: string
 ) {
     // Make the project
     const project = await Ennuizel.newProject("craig-" + projName + "-" +
         id.toString(36));
 
     // Get the info
-    const response = await fetch(craig + "?id=" + id + "&key=" + key + "&fetch=info");
-    const info = await response.json();
+    const response = await fetch(`https://${apiUrl}/api/recording/${id}/users?key=${key}`);
+    const users: { id: string; name: string; discrim: string }[] = await response.json();
 
     // Create the tracks
     const tracks: {idx: number, track: ennuizel.track.AudioTrack}[] = [];
-    for (let idx = 1; info.tracks[idx]; idx++) {
-        const track = await project.newAudioTrack(
-            {name: idx + "-" + info.tracks[idx].name + "_" + info.tracks[idx].discrim});
-        tracks.push({idx, track});
+    let idx = 1;
+    for (const user of users) {
+        const track = await project.newAudioTrack({ name: idx + "-" + user.name + "_" + user.discrim });
+        tracks.push({ idx, track });
+        idx++;
     }
 
     // Status info
@@ -395,6 +396,7 @@ async function loadData(
     }
 
     // Function to load a track
+    // TODO either replace this with a route or just leave this
     async function loadTrack(
         track: ennuizel.track.AudioTrack, cmd: number, idx: number,
         sidx: number
