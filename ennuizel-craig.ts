@@ -355,6 +355,7 @@ async function loadData(
     // Get the info
     const response = await fetch(`https://${apiUrl}/api/recording/${id}/users?key=${key}`);
     const data = await response.json();
+    if (response.status !== 200) throw new Error(data.error);
     const users: { id: string; name: string; discrim: string }[] = data.users;
 
     // Create the tracks
@@ -400,6 +401,10 @@ async function loadData(
 
         // Get the data
         const res = await fetch(`https://${apiUrl}/api/recording/${id}/ennuizel?key=${key}&track=${idx}`);
+        if (res.status !== 200) {
+            const data = await res.json();
+            throw new Error(data.error);
+        }
         const inRdr = res.body.getReader();
 
         // Get 1MB of data to queue up libav
