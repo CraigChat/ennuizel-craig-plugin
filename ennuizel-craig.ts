@@ -56,10 +56,8 @@ Ennuizel.registerPlugin(plugin);
  */
 async function craigWizard(d: ennuizel.ui.Dialog, project: ennuizel.Project) {
     // Get project info
-    const idS = params.get("i");
-    const id = Number.parseInt(idS, 36);
-    const keyS = params.get("k");
-    const key = Number.parseInt(keyS, 36);
+    const id = params.get("i");
+    const key = params.get("k");
     const projName = params.get("nm") || String(id);
     const apiUrl = params.get("a") || 'craig.horse';
     const wizardOptsS = params.get("w");
@@ -349,11 +347,10 @@ async function postWizard(project: ennuizel.Project) {
  * Load remote data.
  */
 async function loadData(
-    d: ennuizel.ui.Dialog, url: URL, id: number, key: number, projName: string, apiUrl: string
+    d: ennuizel.ui.Dialog, url: URL, id: string, key: string, projName: string, apiUrl: string
 ) {
     // Make the project
-    const project = await Ennuizel.newProject("craig-" + projName + "-" +
-        id.toString(36));
+    const project = await Ennuizel.newProject("craig-" + projName + "-" + id);
 
     // Get the info
     const response = await fetch(`https://${apiUrl}/api/recording/${id}/users?key=${key}`);
