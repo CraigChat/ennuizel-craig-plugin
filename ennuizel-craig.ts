@@ -23,8 +23,6 @@ declare let LibAV: any;
 const ui = Ennuizel.ui;
 const hotkeys = Ennuizel.hotkeys;
 
-const craig = "https://craig.horse/";
-
 // Our formats, as indexed in wizard options
 const wizardFormats = [
     "_FLAC", "_M4A (MPEG-4 audio)", "Ogg _Vorbis", "_Opus", "wav_pack", "_wav",
@@ -396,80 +394,15 @@ async function loadData(
     }
 
     // Function to load a track
-    // TODO either replace this with a route or just leave this
     async function loadTrack(
-        track: ennuizel.track.AudioTrack, cmd: number, idx: number,
-        sidx: number
+        track: ennuizel.track.AudioTrack, idx: number, sidx: number
     ) {
         // Make a libav instance
         const libav = await Ennuizel.avthreads.get();
 
-        // Make the connection
-        const sock = new WebSocket("wss://w.craig.horse/ennuizel/ws");
-        sock.binaryType = "arraybuffer";
-
-        // Receive data
-        let first = true;
-        const incoming: ArrayBuffer[] = [];
-        let incomingRes: (x:unknown) => void = null;
-        sock.onmessage = ev => {
-            if (first) {
-                /* First message is an acknowledgement. FIXME: Actually check
-                 * it! */
-                first = false;
-                return;
-            }
-
-            // Accept the data
-            incoming.push(ev.data);
-
-            // And inform the reader
-            if (incomingRes)
-                incomingRes(null);
-        };
-
-        // Log in
-        sock.onopen = () => {
-            const buf = new DataView(new ArrayBuffer(16));
-            buf.setUint32(0, cmd, true);
-            buf.setUint32(4, id, true);
-            buf.setUint32(8, key, true);
-            buf.setUint32(12, idx, true);
-            sock.send(buf);
-        };
-
-        // Reader for incoming data
-        const inStream = new Ennuizel.ReadableStream({
-            async pull(controller) {
-                while (true) {
-                    if (incoming.length) {
-                        // Get the part
-                        const part = incoming.shift();
-                        const partD = new DataView(part);
-
-                        // Ack it
-                        const ack = new DataView(new ArrayBuffer(8));
-                        ack.setUint32(4, partD.getUint32(0, true), true);
-                        sock.send(ack);
-
-                        // And enqueue it
-                        if (part.byteLength > 4) {
-                            controller.enqueue(new Uint8Array(part).slice(4));
-                        } else {
-                            controller.close();
-                            sock.close();
-                        }
-
-                        break;
-                    }
-
-                    // No incoming data, so wait for more
-                    await new Promise(res => incomingRes = res);
-                    incomingRes = null;
-                }
-            }
-        });
-        const inRdr = inStream.getReader();
+        // Get the data
+        const res = await fetch(`https://${apiUrl}/api/recording/${id}/ennuizel?key=${key}&track=${idx}`);
+        const inRdr = res.body.getReader();
 
         // Get 1MB of data to queue up libav
         const fname = "tmp-" + idx + ".ogg";
@@ -592,7 +525,7 @@ async function loadData(
         // Enqueue normal tracks
         while (tracks.length && promises.length < threads) {
             const track = tracks.shift();
-            promises.push(loadTrack(track.track, 0x11, track.idx, track.idx - 1));
+            promises.push(loadTrack(track.track, track.idx, track.idx - 1));
         }
 
         // Wait for one to finish
