@@ -357,7 +357,8 @@ async function loadData(
 
     // Get the info
     const response = await fetch(`https://${apiUrl}/api/recording/${id}/users?key=${key}`);
-    const users: { id: string; name: string; discrim: string }[] = await response.json();
+    const data = await response.json();
+    const users: { id: string; name: string; discrim: string }[] = data.users;
 
     // Create the tracks
     const tracks: {idx: number, track: ennuizel.track.AudioTrack}[] = [];
