@@ -334,13 +334,13 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
   const response = await fetch(`https://${apiUrl}/api/recording/${id}/users?key=${key}`);
   const data = await response.json();
   if (response.status !== 200) throw new Error(data.error);
-  const users: { id: string; name: string; discrim: string }[] = data.users;
+  const users: { id: string; name?: string; discrim?: string; username: string; discriminator: string }[] = data.users;
 
   // Create the tracks
   const tracks: { idx: number; track: ennuizel.track.AudioTrack }[] = [];
   let idx = 1;
   for (const user of users) {
-    const track = await project.newAudioTrack({ name: idx + '-' + user.name + '_' + user.discrim });
+    const track = await project.newAudioTrack({ name: idx + '-' + (user.name || user.username) + '_' + (user.discrim || user.discriminator) });
     tracks.push({ idx, track });
     idx++;
   }
