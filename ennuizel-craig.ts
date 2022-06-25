@@ -21,7 +21,7 @@ const ui = Ennuizel.ui;
 const hotkeys = Ennuizel.hotkeys;
 
 // Our formats, as indexed in wizard options
-const wizardFormats = ['_FLAC', '_M4A (MPEG-4 audio)', 'Ogg _Vorbis', '_Opus', 'wav_pack', '_wav', 'A_LAC'];
+const wizardFormats = ['_FLAC', '_M4A (MPEG-4 audio)', 'Ogg _Vorbis', '_Opus', 'wav_pack', '_wav', 'A_LAC (Apple Lossless)'];
 
 // The plugin info
 const plugin: ennuizel.Plugin = {
