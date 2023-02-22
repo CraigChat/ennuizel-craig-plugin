@@ -377,13 +377,66 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
     // Make a libav instance
     const libav = await Ennuizel.avthreads.get();
 
-    // Get the data
-    const res = await fetch(`https://${apiUrl}/api/recording/${id}/ennuizel?key=${key}&track=${idx}`);
-    if (res.status !== 200) {
-      const data = await res.json();
-      throw new Error(data.error);
-    }
-    const inRdr = res.body.getReader();
+    // Make the connection
+    const sock = new WebSocket(`wss://${apiUrl}/api/ennuizel`);
+    sock.binaryType = 'arraybuffer';
+
+    // Receive data
+    let first = true;
+    const incoming: ArrayBuffer[] = [];
+    let incomingRes: (x: unknown) => void = null;
+    sock.onmessage = (ev) => {
+      if (first) {
+        // FIXME: First message is an acknowledgement.  Actually check it!
+        if (ev.data === '{"ok":true}') {
+          console.log(`Track #${idx} acknowledged`);
+          first = false;
+        } else console.warn(`Track #${idx} sent invalid first message!`);
+        return;
+      }
+
+      // Accept the data
+      incoming.push(ev.data);
+
+      // And inform the reader
+      if (incomingRes) incomingRes(null);
+    };
+
+    // Log in
+    sock.onopen = () => sock.send(JSON.stringify({ i: id, k: key, t: idx }));
+
+    // Reader for incoming data
+    const inStream = new Ennuizel.ReadableStream({
+      async pull(controller) {
+        while (true) {
+          if (incoming.length) {
+            // Get the part
+            const part = incoming.shift();
+            const partD = new DataView(part);
+
+            // Ack it
+            const ack = new DataView(new ArrayBuffer(8));
+            ack.setUint32(4, partD.getUint32(0, true), true);
+            sock.send(ack);
+
+            // And enqueue it
+            if (part.byteLength > 4) {
+              controller.enqueue(new Uint8Array(part).slice(4));
+            } else {
+              controller.close();
+              sock.close();
+            }
+
+            break;
+          }
+
+          // No incoming data, so wait for more
+          await new Promise((res) => (incomingRes = res));
+          incomingRes = null;
+        }
+      }
+    });
+    const inRdr = inStream.getReader();
 
     // Get 1MB of data to queue up libav
     const fname = 'tmp-' + idx + '.ogg';
