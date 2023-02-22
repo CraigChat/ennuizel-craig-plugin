@@ -72,29 +72,7 @@ async function craigWizard(d: ennuizel.ui.Dialog, project: ennuizel.Project) {
       if (/^craig-/.test(project.name)) ecProjects.push(project.id);
     }
 
-    if (ecProjects.length) {
-      const doDelete = await ui.dialog(async function (d, show) {
-        ui.mk('div', d.box, {
-          innerHTML:
-            'You have data cached in your browser from previous projects. Would you like to delete it to save space? This will <em>not</em> delete your recordings from the server.<br/><br/>'
-        });
-
-        const yes = hotkeys.btn(d, '_Yes, delete it', { className: 'row' });
-        const no = hotkeys.btn(d, '_No, keep it', { className: 'row' });
-
-        show(no);
-
-        return await new Promise((res) => {
-          yes.onclick = () => res(true);
-          no.onclick = () => res(false);
-        });
-      });
-
-      if (doDelete) {
-        // Delete them
-        for (const id of ecProjects) await Ennuizel.deleteProjectById(id);
-      }
-    }
+    if (ecProjects.length) for (const id of ecProjects) await Ennuizel.deleteProjectById(id);
   }
 
   // Now ask them whether to wizard
