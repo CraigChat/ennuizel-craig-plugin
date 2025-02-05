@@ -318,7 +318,8 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
   const tracks: { idx: number; track: ennuizel.track.AudioTrack }[] = [];
   let idx = 1;
   for (const user of users) {
-    const track = await project.newAudioTrack({ name: idx + '-' + (user.name || user.username) + '_' + (user.discrim || user.discriminator) });
+    const discrim = user.discrim || user.discriminator;
+    const track = await project.newAudioTrack({ name: idx + '-' + (user.name || user.username) + (discrim === '0' ? '' : '_' + discrim) });
     tracks.push({ idx, track });
     idx++;
   }
