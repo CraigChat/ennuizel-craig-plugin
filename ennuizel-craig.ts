@@ -327,8 +327,9 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
   const status: {
     name: string;
     duration: number | boolean;
+    ready: boolean;
   }[] = [];
-  for (const track of tracks) status.push({ name: track.track.name, duration: false });
+  for (const track of tracks) status.push({ name: track.track.name, duration: false, ready: false });
 
   // Show the current status
   function showStatus() {
@@ -337,7 +338,9 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
       status
         .map((x) => {
           let s = x.name + ': ';
-          if (x.duration === false) {
+          if (x.ready === false) {
+            s += 'Waiting...';
+          } else if (x.duration === false) {
             s += 'Not yet loading';
           } else if (x.duration === true) {
             s += 'Finished loading';
@@ -369,6 +372,7 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
         if (ev.data === '{"ok":true}') {
           console.log(`Track #${idx} acknowledged`);
           first = false;
+          status[idx].ready = true;
         } else console.warn(`Track #${idx} sent invalid first message!`);
         return;
       }
