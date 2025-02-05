@@ -387,6 +387,8 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
     // Log in
     sock.onopen = () => sock.send(JSON.stringify({ i: id, k: key, t: idx }));
 
+    sock.onclose = () => console.log(`Track #${idx} socket closed`);
+
     // Reader for incoming data
     const inStream = new Ennuizel.ReadableStream({
       async pull(controller) {
