@@ -391,18 +391,21 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
             // Get the part
             const part = incoming.shift();
             const partD = new DataView(part);
+            const wsClosed = sock.readyState === WebSocket.CLOSING || sock.readyState === WebSocket.CLOSED;
 
             // Ack it
-            const ack = new DataView(new ArrayBuffer(8));
-            ack.setUint32(4, partD.getUint32(0, true), true);
-            sock.send(ack);
+            if (!wsClosed) {
+              const ack = new DataView(new ArrayBuffer(8));
+              ack.setUint32(4, partD.getUint32(0, true), true);
+              sock.send(ack);
+            }
 
             // And enqueue it
             if (part.byteLength > 4) {
               controller.enqueue(new Uint8Array(part).slice(4));
             } else {
               controller.close();
-              sock.close();
+              if (!wsClosed) sock.close();
             }
 
             break;
