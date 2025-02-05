@@ -373,6 +373,7 @@ async function loadData(d: ennuizel.ui.Dialog, url: URL, id: string, key: string
           console.log(`Track #${idx} acknowledged`);
           first = false;
           status[idx].ready = true;
+          showStatus();
         } else console.warn(`Track #${idx} sent invalid first message!`);
         return;
       }
